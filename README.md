@@ -4,6 +4,6 @@ Not working:
 - ‘Search for more cities online’
 - Probably winds? (Need more testing)
 
-To apply the patch, you need to decompile the APK, modify the smali code, and update the endpoints in ServiceURLHelper.smali
+To apply the patch, you need to decompile the APK, replace and edit api endpoints from releases after add in HTC Weather Sync Provider
 
 Currently in alpha; it still needs further work :/
