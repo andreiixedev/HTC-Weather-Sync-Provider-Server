@@ -1,7 +1,9 @@
-GEOCODING_URL = "https://geocoding-api.open-meteo.com/v1/search" #Open-Meteo Api
-FORECAST_URL = "https://api.open-meteo.com/v1/forecast" #Open-Meteo Api
+# --- hardcoded open-meteo api ----
+GEOCODING_URL = "https://geocoding-api.open-meteo.com/v1/search" 
+FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
+# ---------------------------------
 
-#----------- do not edit ------------
+# Do not edit
 CURRENT_PARAMS = (
     "temperature_2m,relative_humidity_2m,apparent_temperature,"
     "weather_code,wind_speed_10m,wind_direction_10m"
@@ -16,20 +18,16 @@ HOURLY_PARAMS = (
     "weather_code,wind_speed_10m,precipitation_probability"
 )
 
-# WMO mapping
 WMO_TO_ACCU = {
-    0: 1,     # clear
-    1: 2, 2: 3, 3: 6,       # Cloudiness
-    45: 5, 48: 5,           # fog
-    51: 12, 53: 12, 55: 12, # drizzle
-    61: 12, 63: 12, 65: 12, # rain
-    71: 19, 73: 19, 75: 19, # snow
-    80: 12, 81: 12, 82: 12, # Showers
-    95: 15, 96: 15, 99: 15  # storm
+    0: 1, 1: 2, 2: 3, 3: 6, 45: 5, 48: 5,
+    51: 12, 53: 12, 55: 12, 61: 12, 63: 12, 65: 12,
+    71: 19, 73: 19, 75: 19, 80: 12, 81: 12, 82: 12,
+    95: 15, 96: 15, 99: 15
 }
-#---------------------------------------
+#/////
 
-# server settings
+# Server setting
 HOST = "0.0.0.0"
 PORT = 4000
-DEBUG = True
+DEBUG = False          # debug
+TIMEOUT = 10           # timeout in seconds for HTTP requests

@@ -1,12 +1,20 @@
+# routes/weather.py
 from flask import Blueprint, request, Response
 import requests
-from config import FORECAST_URL, CURRENT_PARAMS, DAILY_PARAMS, HOURLY_PARAMS
+from config import FORECAST_URL, CURRENT_PARAMS, DAILY_PARAMS, HOURLY_PARAMS, TIMEOUT
 from utils.weather_utils import geocode, build_weather_data_xml
 
 weather_bp = Blueprint("weather", __name__)
 
+request_counter = None
+
+def set_counter(counter):
+    global request_counter
+    request_counter = counter
+
 @weather_bp.route("/widget/htc2/weather-data.asp")
 def weather_data():
+    global request_counter
     location = request.args.get("location", "")
     slat = request.args.get("slat")
     slon = request.args.get("slon")
@@ -40,7 +48,8 @@ def weather_data():
             "timezone": "UTC",
             "forecast_days": 7
         }
-        resp = requests.get(FORECAST_URL, params=params)
+        resp = requests.get(FORECAST_URL, params=params, timeout=TIMEOUT)
+        resp.raise_for_status()
         data = resp.json()
 
         current = data.get("current", {})
@@ -51,11 +60,19 @@ def weather_data():
         current["lon"] = lon
 
         xml = build_weather_data_xml(city_display, current, daily, hourly)
+
+        if request_counter is not None:
+            request_counter.increment()
+
         return Response(xml, mimetype="text/xml")
 
+    except requests.exceptions.Timeout:
+        return "Upstream timeout", 504
+    except requests.exceptions.RequestException as e:
+        return f"Error fetching weather: {str(e)}", 502
     except Exception as e:
         return f"Internal error: {str(e)}", 500
 
-@weather_bp.route("/widget/htc2/city-find.asp") #To Do: idk it's work, need to be fixed
+@weather_bp.route("/widget/htc2/city-find.asp")
 def city_find():
     return """<cities><city name="Bucuresti" location="cityId:683506" /></cities>"""

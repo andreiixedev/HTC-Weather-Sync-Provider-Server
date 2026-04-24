@@ -1,7 +1,8 @@
+# utils/weather_utils.py
 import requests
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
-from config import GEOCODING_URL, WMO_TO_ACCU
+from config import GEOCODING_URL, WMO_TO_ACCU, TIMEOUT
 
 def get_accu_icon(wmo_code, is_day=True):
     base = WMO_TO_ACCU.get(wmo_code, 1)
@@ -12,17 +13,23 @@ def get_accu_icon(wmo_code, is_day=True):
 def kmh_to_mph(kmh):
     return round(kmh * 0.621371, 1)
 
+def is_daytime(hour):
+    """Considerăm zi între 6 și 18 (6 AM - 6 PM)"""
+    return 6 <= hour < 18
+
 def geocode(city_name):
-    """Returnează (lat, lon, display_name) sau None."""
-    resp = requests.get(GEOCODING_URL, params={"name": city_name, "count": 1, "language": "en"})
-    data = resp.json()
-    if "results" in data and data["results"]:
-        r = data["results"][0]
-        return r["latitude"], r["longitude"], r["name"]
+    try:
+        resp = requests.get(GEOCODING_URL, params={"name": city_name, "count": 1, "language": "en"}, timeout=TIMEOUT)
+        resp.raise_for_status()
+        data = resp.json()
+        if "results" in data and data["results"]:
+            r = data["results"][0]
+            return r["latitude"], r["longitude"], r["name"]
+    except Exception:
+        pass
     return None
 
 def build_weather_data_xml(location_name, current, daily, hourly):
-    """Construiește XML-ul cerut de widget."""
     root = ET.Element("adc_Database")
 
     # <local>
@@ -35,7 +42,7 @@ def build_weather_data_xml(location_name, current, daily, hourly):
     ET.SubElement(local, "currentGmtOffset").text = "0"
 
     # <currentconditions>
-    is_day = 6 <= now.hour < 18
+    is_day = is_daytime(now.hour)
     cur = ET.SubElement(root, "currentconditions", {"daylight": "True" if is_day else "False"})
     ET.SubElement(cur, "temperature").text = str(round(current["temperature_2m"]))
     ET.SubElement(cur, "weathericon").text = get_accu_icon(current["weather_code"], is_day)
@@ -95,7 +102,7 @@ def build_weather_data_xml(location_name, current, daily, hourly):
             ET.SubElement(nighttime, "realfeellow").text = str(round(daily_min[i] - 5))
             ET.SubElement(nighttime, "precipamount").text = str(pop)
 
-    # Hourly (the first 8 hours)
+    # Hourly – corectat: acum se determină corect zi/noapte pentru fiecare oră
     if hourly:
         hourly_times = hourly.get("time", [])
         hourly_temp = hourly.get("temperature_2m", [])
@@ -107,8 +114,10 @@ def build_weather_data_xml(location_name, current, daily, hourly):
         limit = min(8, len(hourly_times))
         for i in range(limit):
             h_dt = datetime.strptime(hourly_times[i], "%Y-%m-%dT%H:%M")
-            h = ET.SubElement(hour_el, "hour", {"name": h_dt.strftime("%I %p")})
-            ET.SubElement(h, "weathericon").text = get_accu_icon(hourly_wcode[i], True)
+            hour_name = h_dt.strftime("%I %p")
+            is_day_hour = is_daytime(h_dt.hour)
+            h = ET.SubElement(hour_el, "hour", {"name": hour_name})
+            ET.SubElement(h, "weathericon").text = get_accu_icon(hourly_wcode[i], is_day_hour)
             ET.SubElement(h, "temperature").text = str(round(hourly_temp[i]))
             ET.SubElement(h, "realfeel").text = str(round(hourly_feels[i]))
             ET.SubElement(h, "precip").text = str(hourly_precip[i] if i < len(hourly_precip) else 0)
