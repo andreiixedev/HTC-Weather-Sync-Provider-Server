@@ -1,4 +1,3 @@
-# utils/weather_utils.py
 import requests
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
@@ -14,7 +13,6 @@ def kmh_to_mph(kmh):
     return round(kmh * 0.621371, 1)
 
 def is_daytime(hour):
-    """Considerăm zi între 6 și 18 (6 AM - 6 PM)"""
     return 6 <= hour < 18
 
 def geocode(city_name):
@@ -102,7 +100,7 @@ def build_weather_data_xml(location_name, current, daily, hourly):
             ET.SubElement(nighttime, "realfeellow").text = str(round(daily_min[i] - 5))
             ET.SubElement(nighttime, "precipamount").text = str(pop)
 
-    # Hourly – corectat: acum se determină corect zi/noapte pentru fiecare oră
+    # Hourly
     if hourly:
         hourly_times = hourly.get("time", [])
         hourly_temp = hourly.get("temperature_2m", [])
